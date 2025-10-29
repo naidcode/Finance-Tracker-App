@@ -1,0 +1,183 @@
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body{
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  background-color: rgb(255, 110, 53);
+}
+
+.header{
+  height: 100px;
+  width: 80%;
+  background-color: white;
+  margin: 2em auto 1em auto;
+  border-radius: 15px;
+  
+}
+h1{
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 2rem;
+  text-align: center;
+  padding: 25px;
+}
+
+.amountBoxes{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  width: 80%;
+  gap: 0 10px;
+}
+
+.amountBox{
+  width: 280px;
+  height: 120px;
+  background-color: white;
+  border-radius: 15px;
+  text-align: center;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.amountPara{
+  color: grey;
+  padding: 25px 0 0 0;
+  font-size: 1rem;
+}
+
+.amountIn{
+  color: green;
+  font-size: 2rem;
+  padding: 10px 0 0 0;
+  font-weight: 600;
+}
+.amountEx{
+  color: red;
+  font-size: 2rem;
+  padding: 10px 0 0 0;
+  font-weight: 600;
+}
+.amountNet{
+  color: black;
+  font-size: 2rem;
+  padding: 10px 0 0 0;
+  font-weight: 600;
+}
+#TrackerBox{
+  height: 250px;
+  width: 80%;
+  background-color: white;
+  margin: 1em auto;
+  border-radius: 15px;
+  padding: 20px;
+}
+
+#TrackerBox h2{
+  font-size: 1.5rem;
+  font-family: Arial, Helvetica, sans-serif;
+  color: black;
+  padding: 5px 0;
+}
+#amountInput , #description{
+  height: 40px;
+  width: 50%;
+  padding: 10px;
+  border-radius: 10px;
+  outline: none;
+}
+#InExBox{
+  height: 40px;
+  width: 25%;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+.inputs{
+  display: flex;
+  gap: 10px;
+  width: 95%;
+}
+.selectFlex{
+  display: flex;
+  width: 96%;
+  margin: 1em 0;
+  gap: 10px;
+}
+#whereSpend , #AccountName{
+   height: 40px;
+  width: 50%;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+#addTransaction{
+    height: 40px;
+  width: 96%;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+ background-color: rgb(255, 110, 53);
+  border-radius: 10px;
+}
+#addTransaction:hover{
+ background-color: rgb(235, 83, 23);
+}
+
+.filtered{
+   height: 80px;
+  width: 80%;
+  background-color: white;
+  margin: 1em auto;
+  border-radius: 15px;
+}
+.filtered .active{
+  height: 40px;
+  width: 20%;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+ background-color: rgb(255, 110, 53);
+  border-radius: 10px;
+}
+.filter-Btn{
+   height: 40px;
+  width: 20%;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1em 1em;
+  border: none;
+ background-color: rgb(204, 178, 167);
+  border-radius: 10px;
+}
+
+@media (max-width:720px){
+  .amountBoxes , .header ,#TrackerBox , .filtered{
+    width: 95%;
+  }
+}
+
+@media (max-width: 510px){
+  .header h1{
+    font-size: 1.4rem;
+    padding: 35px;
+  }
+  .amountPara{
+    font-size: 0.9rem;
+  }
+
+  .amountEx , .amountIn , .amountNet{
+    font-size: 1.6rem;
+  }
+
+  .filter-Btn , .active{
+    font-size: 0.8rem;
+    margin: 1em 0.2em;
+  }
+}
