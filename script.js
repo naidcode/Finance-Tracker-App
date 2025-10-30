@@ -6,7 +6,10 @@ class Transaction{
     this.type = type,
     this.category = category,
     this.account = account
+  }
 
+  getnetbal(){
+    return this.amount
   }
 }
 
@@ -22,20 +25,21 @@ class TransactionManager{
     this.#transaction = this.#transaction.filter(d => d.id !== id);
   };
 
-  getTransaction(){
-    return [...this.#transaction]
-  }
-
+  
   calculateIncome(){
-  return this.#transaction.filter(f => f.type === "income")
-  .reduce((sum , f) => sum + f.amount ,0)
+    return this.#transaction.filter(f => f.type === "income")
+    .reduce((sum , f) => sum + f.amount ,0)
   };
-
+  
   calculateExpense(){
     return this.#transaction.filter(f => f.type === "expense" )
     .reduce((sum , f) => sum - f.amount ,0)
   };
-
+  
+  netBalance(){
+    return this.getnetbal()
+  }
+  
   filterTransaction(filter){
     let transaction = this.getTransaction();
     if(filter === "income"){
@@ -43,10 +47,13 @@ class TransactionManager{
     } else if(filter === "expense"){
       return transaction.filter(f => f.type === "expense")
     }
-
+    
     return transaction;
   };
-
+  
+  getTransaction(){
+    return [...this.#transaction]
+  }
 
 }
 
@@ -57,13 +64,13 @@ class UIRenderer{
 
   rendertransactionList(filter = "all"){
     let transactionList = document.getElementById("transactionList");
-    let filter = manager.filterTransaction(filter)
+    let filters = manager.filterTransaction(filter)
     let transaction = manager.getTransaction();
 
-    transactionList.innerHTML = filter.map(filter => `
+    transactionList.innerHTML = filters.map(filter => `
         <div class="emptyBox" >
-        <h1>No Transaction ${filter.type === "all" ? "yet" : "here"}</h1>
-        <p>${filter.type === "income" || filter.type === "expense" ? "no transaction with this type" : "add your monthly expenses and incomes"}
+        <h1>No Transaction ${filter === "all" ? "yet" : "here"}</h1>
+        <p>${filter === "income" || filter === "expense" ? "no transaction with this type" : "add your monthly expenses and incomes"}
         </div>
       `).join('');
 
@@ -77,8 +84,20 @@ class UIRenderer{
       <button class="delete-Btn" data-id="${trans.id}">Delete</button>
       </div>
       `).join('')
+  };
+  renderBalance(){
+    let amountIn = document.getElementById("amountIn");
+    let amountEx = document.getElementById("amountEx");
+    let amountNet = document.getElementById("amountNet");
+
+    let amounts = this.manager.getTransaction();
+    amountIn.innerHTML = `<p>${amounts.calculateIncome()}</p>`;
+    amountEx.innerHTML = `<p>${amounts.calculateExpense()}</p>`
+    amountNet.innerHTML = `<p>${amounts.netBalance()}</p>`
+  };
+
+  renderAll(){
+    this.rendertransactionList();
+    this.renderBalance();
   }
 }
-
-let manager = new TransactionManager()
-console.log(manager.filterTransaction("income"))
