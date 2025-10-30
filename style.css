@@ -50,19 +50,19 @@ h1{
   font-size: 1rem;
 }
 
-.amountIn{
+#amountIn{
   color: green;
   font-size: 2rem;
   padding: 10px 0 0 0;
   font-weight: 600;
 }
-.amountEx{
+#amountEx{
   color: red;
   font-size: 2rem;
   padding: 10px 0 0 0;
   font-weight: 600;
 }
-.amountNet{
+#amountNet{
   color: black;
   font-size: 2rem;
   padding: 10px 0 0 0;
@@ -172,7 +172,7 @@ h1{
     font-size: 0.9rem;
   }
 
-  .amountEx , .amountIn , .amountNet{
+  #amountEx , #amountIn , #amountNet{
     font-size: 1.6rem;
   }
 
