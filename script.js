@@ -7,10 +7,6 @@ class Transaction{
     this.category = category,
     this.account = account
   }
-
-  getnetbal(){
-    return this.amount
-  }
 }
 
 class TransactionManager{
@@ -65,23 +61,23 @@ class UIRenderer{
 
   rendertransactionList(filter = "all"){
     let transactionList = document.getElementById("transactionList");
-    let filters = manager.filterTransaction(filter)
-    let transaction = manager.getTransaction();
+    let filters = this.manager.filterTransaction(filter)
+    // let transaction = this.manager.getTransaction();
 
     if(filters.length === 0){
 
       transactionList.innerHTML = `
           <div class="emptyBox" >
           <h1>No Transaction ${filter === "all" ? "yet" : "here"}</h1>
-          <p>${filter === "income" || filter === "expense" ? "no transaction with this type" : "add your monthly expenses and incomes"}
+          <p style="text-align: center">${filter === "income" || filter === "expense" ? "no transaction with this type" : "add your monthly expenses and incomes"}</p>
           </div>
         `
         return
     }
 
 
-    transactionList.innerHTML = transaction.map(trans => `
-      <div class="transactionList" style="background-color: ${trans.type === "income" ? "lightgreen" : "lightcoral"}>
+    transactionList.innerHTML = filters.map(trans => `
+      <div class="transactionList" style="background-color: ${trans.type === "income" ? "lightgreen" : "lightcoral"}">
       <span>${trans.description}</span>
       <span>${trans.type}</span>
       <p> ${trans.account}</p>
@@ -98,11 +94,11 @@ class UIRenderer{
 
     let income = this.manager.calculateIncome();
    let expense = this.manager.calculateExpense();
-   let netBalance = this.manager.getnetbal();
+   let netBalance = this.manager.netBalance();
 
    amountIn.textContent = `+$${income.toFixed(2)}`;
-      amountEx.textContent = `+$${expense.toFixed(2)}`;
-   amountNet.textContent = `+$${netBalance.toFixed(2)}`;
+    amountEx.textContent = `-$${expense.toFixed(2)}`;
+   amountNet.textContent = `$${netBalance.toFixed(2)}`;
 
   };
 
@@ -125,18 +121,24 @@ class App{
   document.getElementById("addTransaction").addEventListener("click" , () => {
     let amountInput = document.getElementById("amountInput");
     let description = document.getElementById("description");
+    let InExBox = document.getElementById("InExBox");
+    let whereSpend = document.getElementById("whereSpend");
+    let AccountName = document.getElementById("AccountName");
     let amount = amountInput.value.trim();
     let describe = description.value.trim();
+    let type = InExBox.value
+    let category = whereSpend.value
+    let account = AccountName.value
 
     if(!amount){
-      alert("first enter the aount")
+      alert("please enter the amount")
       return
     } else if(!describe){
       alert("first enter the description")
       return
     }
 
-    this.manager.AddTransaction(description, type,account, category ,amount);
+    this.manager.AddTransaction(describe, type,account, category ,amount);
     amountInput.value = "";
     description.value = "";
     this.renderer.rendertransactionList(this.currentFilter);
@@ -154,12 +156,11 @@ class App{
 
   document.querySelector(".filtered").addEventListener("click" , (e) =>{
     if(e.target.classList.contains("filter-Btn")){
-      this.currentFilter = parseFloat(e.target.dataset.filter)
+      this.currentFilter = e.target.dataset.filter
       document.querySelectorAll(".filter-Btn").forEach(button => {
         button.classList.remove("active")
-  
       });
-      button.classList.add("active");
+      e.target.classList.add("active");
       this.renderer.rendertransactionList(this.currentFilter)
     }
   })
