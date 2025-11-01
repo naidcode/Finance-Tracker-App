@@ -230,7 +230,7 @@ h1{
   }
 
   #amountEx , #amountIn , #amountNet{
-    font-size: 1.6rem;
+    font-size: 1.3rem;
   }
 
   .filter-Btn , .active{
@@ -239,7 +239,7 @@ h1{
   }
 
    .spanstyle , .parastyle ,.h3style{
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     padding: 4px;
   }
   .delete-Btn{
