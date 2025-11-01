@@ -97,7 +97,7 @@ class UIRenderer{
       <p class="parastyle"> ${trans.account}</p>
       <p class="parastyle">${trans.category}</p>
       <h3 class="h3style">$${trans.amount}</h3>
-      <span class="spanstyle">Date: ${trans.date}</span>
+      <span class="datestyle"> ${trans.date}</span>
       <button class="delete-Btn" data-id="${trans.id}">🗑️</button>
       </div>
       `).join('')
