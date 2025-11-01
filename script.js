@@ -5,12 +5,16 @@ class Transaction{
     this.description = description
     this.type = type,
     this.category = category,
-    this.account = account
+    this.account = account,
+    this.date = new Date().toLocaleDateString();
   }
 }
 
 class TransactionManager{
   #transaction = [];
+  constructor() {
+    this.loadlocalStorage()
+  }
 
   AddTransaction(description, type,account, category ,amount){
     let numamount = parseFloat(amount)
@@ -52,6 +56,17 @@ class TransactionManager{
     return [...this.#transaction]
   }
 
+  saveLocalstorage(){
+    localStorage.setItem("transaction" , JSON.stringify(this.#transaction))
+  }
+
+  loadlocalStorage(){
+    let data = localStorage.getItem("transaction")
+    if(data){
+      this.#transaction = JSON.parse(data);
+    }
+  }
+
 }
 
 class UIRenderer{
@@ -62,7 +77,6 @@ class UIRenderer{
   rendertransactionList(filter = "all"){
     let transactionList = document.getElementById("transactionList");
     let filters = this.manager.filterTransaction(filter)
-    // let transaction = this.manager.getTransaction();
 
     if(filters.length === 0){
 
@@ -78,12 +92,13 @@ class UIRenderer{
 
     transactionList.innerHTML = filters.map(trans => `
       <div class="transactionList" style="background-color: ${trans.type === "income" ? "lightgreen" : "lightcoral"}">
-      <span>${trans.description}</span>
-      <span>${trans.type}</span>
-      <p> ${trans.account}</p>
-      <p>${trans.category}</p>
-      <h3>${trans.amount}</h3>
-      <button class="delete-Btn" data-id="${trans.id}">Delete</button>
+      <span class="spanstyle">${trans.description}</span>
+      <span class="spanstyle">${trans.type}</span>
+      <p class="parastyle"> ${trans.account}</p>
+      <p class="parastyle">${trans.category}</p>
+      <h3 class="h3style">$${trans.amount}</h3>
+      <span class="spanstyle">Date: ${trans.date}</span>
+      <button class="delete-Btn" data-id="${trans.id}">🗑️</button>
       </div>
       `).join('')
   };
@@ -143,6 +158,7 @@ class App{
     description.value = "";
     this.renderer.rendertransactionList(this.currentFilter);
     this.renderer.renderBalance();
+    this.manager.saveLocalstorage()
 
   })
   document.getElementById("transactionList").addEventListener("click" ,(e) =>{
@@ -151,6 +167,7 @@ class App{
       this.manager.deleteTransaction(id);
       this.renderer.rendertransactionList(this.currentFilter);
       this.renderer.renderBalance();
+      this.manager.saveLocalstorage()
     }
   })
 
@@ -162,6 +179,7 @@ class App{
       });
       e.target.classList.add("active");
       this.renderer.rendertransactionList(this.currentFilter)
+      this.manager.saveLocalstorage()
     }
   })
  }
