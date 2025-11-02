@@ -83,7 +83,7 @@ class UIRenderer{
       transactionList.innerHTML = `
           <div class="emptyBox" >
           <h1>No Transaction ${filter === "all" ? "yet" : "here"}</h1>
-          <p style="text-align: center">${filter === "income" || filter === "expense" ? "no transaction with this type" : "add your monthly expenses and incomes"}</p>
+          <p style="text-align: center" style="font-family: sans-serif">${filter === "income" || filter === "expense" ? "no transaction with this type" : "add your monthly expenses and incomes"}</p>
           </div>
         `
         return
@@ -188,3 +188,13 @@ class App{
 
 let app = new App();
 app.renderer.renderAll()
+
+let manager = new TransactionManager();
+let transactionn = new Transaction("for food" , "income" , "saving acount" , "grocery" , 5000);
+console.log(transactionn)
+
+console.log(manager.calculateIncome())
+console.log(manager.filterTransaction("income"))
+console.log(manager.netBalance())
+
+console.log(app)
