@@ -189,12 +189,12 @@ class App{
 let app = new App();
 app.renderer.renderAll()
 
-let manager = new TransactionManager();
-let transactionn = new Transaction("for food" , "income" , "saving acount" , "grocery" , 5000);
-console.log(transactionn)
+// let manager = new TransactionManager();
+// let transactionn = new Transaction("for food" , "income" , "saving acount" , "grocery" , 5000);   just testing the code 
+// console.log(transactionn)
 
-console.log(manager.calculateIncome())
-console.log(manager.filterTransaction("income"))
-console.log(manager.netBalance())
+// console.log(manager.calculateIncome())
+// console.log(manager.filterTransaction("income"))
+// console.log(manager.netBalance())
 
-console.log(app)
+// console.log(app)
