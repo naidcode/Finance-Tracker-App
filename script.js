@@ -91,13 +91,13 @@ class UIRenderer{
 
 
     transactionList.innerHTML = filters.map(trans => `
-      <div class="transactionList" style="background-color: ${trans.type === "income" ? "lightgreen" : "lightcoral"}">
-      <span class="spanstyle">${trans.description}</span>
+      <div class="transactionListz" style="background-color: ${trans.type === "income" ? "lightgreen" : "tomato"}" >
+      <span class="spanstyle" style="color: white">${trans.description}</span>
       <span class="spanstyle">${trans.type}</span>
-      <p class="parastyle"> ${trans.account}</p>
+      <p class="parastyle " > ${trans.account}</p>
       <p class="parastyle">${trans.category}</p>
-      <h3 class="h3style">$${trans.amount}</h3>
-      <span class="datestyle"> ${trans.date}</span>
+      <h3 class="h3style" >$${trans.amount}</h3>
+      <span class="datestyle" style="font-size: 12px"> ${trans.date}</span>
       <button class="delete-Btn" data-id="${trans.id}">🗑️</button>
       </div>
       `).join('')
