@@ -1,7 +1,4 @@
-/* =========================
-   Transaction model + manager
-   ========================= */
-
+// ========== TRANSACTION MODEL ==========
 class Transaction {
   constructor(description, type, account, category, amount) {
     this.id = Date.now() + Math.random();
@@ -14,6 +11,7 @@ class Transaction {
   }
 }
 
+// ========== REAL MANAGER (Business Logic) ==========
 class TransactionManager {
   #transaction = [];
 
@@ -77,63 +75,127 @@ class TransactionManager {
     }
   }
 }
-class AnalyticsProxy {
-  constructor(realManager) {
+
+// ========== PROXY 1: VALIDATION + AUTO-SAVE ==========
+class ValidationProxy {
+  constructor(realManager, auditLog) {
     this.real = realManager;
-    this.events = []; // simple in-memory event log
+    this.auditLog = auditLog;
+    this.onChange = null; // UI callback
   }
 
-  _track(event, meta = {}) {
-    this.events.push({ event, meta, time: Date.now() });
-    console.log("[ANALYTICS]", event, meta);
+  _afterMutate() {
+    // Auto-save
+    if (typeof this.real.saveLocalstorage === "function") {
+      try { 
+        this.real.saveLocalstorage(); 
+        this._logSuccess("Auto-saved to localStorage");
+      } catch (e) { 
+        this._logError(`Auto-save failed: ${e.message}`);
+      }
+    }
+    // Notify UI
+    if (typeof this.onChange === "function") {
+      try { this.onChange(); } catch (e) { console.warn("onChange failed", e); }
+    }
   }
 
-  AddTransaction(...args) {
-    this._track("AddTransaction", { args });
-    return this.real.AddTransaction(...args);
+  _logError(message) {
+    this.auditLog.push({
+      type: "error",
+      icon: "⚠️",
+      message: message,
+      timestamp: new Date().toLocaleTimeString()
+    });
+    console.error(`[VALIDATION] ${message}`);
+  }
+
+  _logSuccess(message) {
+    this.auditLog.push({
+      type: "success",
+      icon: "✅",
+      message: message,
+      timestamp: new Date().toLocaleTimeString()
+    });
+    console.log(`[VALIDATION] ${message}`);
+  }
+
+  AddTransaction(description, type, account, category, amount) {
+    // Validation 1: Amount
+    const numAmount = parseFloat(amount);
+    if (!amount || isNaN(numAmount)) {
+      this._logError(`Invalid amount: "${amount}"`);
+      throw new Error("Amount must be a valid number");
+    }
+    if (numAmount <= 0) {
+      this._logError(`Amount must be positive: ${numAmount}`);
+      throw new Error("Amount must be greater than 0");
+    }
+
+    // Validation 2: Description
+    if (!description || description.trim() === "") {
+      this._logError("Description is empty");
+      throw new Error("Description is required");
+    }
+
+    // Validation 3: Type
+    if (!type || (type !== "income" && type !== "expense")) {
+      this._logError(`Invalid type: "${type}"`);
+      throw new Error("Type must be 'income' or 'expense'");
+    }
+
+    // Validation 4: Category
+    if (!category || category.trim() === "") {
+      this._logError("Category is empty");
+      throw new Error("Category is required");
+    }
+
+    // All validations passed!
+    this._logSuccess(`Validation passed: ${description} $${numAmount}`);
+
+    const result = this.real.AddTransaction(description, type, account, category, amount);
+    this._logSuccess(`Transaction added: ${description} ${type === "income" ? "+" : "-"}$${numAmount}`);
+    this._afterMutate();
+    return result;
   }
 
   deleteTransaction(id) {
-    this._track("deleteTransaction", { id });
-    return this.real.deleteTransaction(id);
+    if (!id) {
+      this._logError("Transaction ID is required");
+      throw new Error("ID is required for deletion");
+    }
+
+    this._logSuccess(`Deleting transaction ID: ${id}`);
+    const result = this.real.deleteTransaction(id);
+    this._afterMutate();
+    return result;
   }
 
-  calculateIncome() {
-    this._track("calculateIncome");
-    return this.real.calculateIncome();
-  }
-
-  calculateExpense() {
-    this._track("calculateExpense");
-    return this.real.calculateExpense();
-  }
-
-  netBalance() {
-    this._track("netBalance");
-    return this.real.netBalance();
-  }
-
-  filterTransaction(filter) {
-    this._track("filterTransaction", { filter });
-    return this.real.filterTransaction(filter);
-  }
-
-  getTransaction() {
-    this._track("getTransaction");
-    return this.real.getTransaction();
-  }
-
-  saveLocalstorage() {
-    this._track("saveLocalstorage");
-    return this.real.saveLocalstorage();
-  }
-
+  // Read-only operations - no validation needed
+  calculateIncome() { return this.real.calculateIncome(); }
+  calculateExpense() { return this.real.calculateExpense(); }
+  netBalance() { return this.real.netBalance(); }
+  filterTransaction(filter) { return this.real.filterTransaction(filter); }
+  getTransaction() { return this.real.getTransaction(); }
+  saveLocalstorage() { return this.real.saveLocalstorage(); }
 }
 
+// ========== PROXY 2: CACHING ==========
 class CachingProxy {
-  constructor(realManager) {
+  constructor(realManager, auditLog) {
     this.real = realManager;
-    this.cache = new Map(); // key => result
+    this.auditLog = auditLog;
+    this.cache = new Map();
+  }
+
+  _logCache(message) {
+    this.auditLog.push({
+      type: "cache",
+      icon: "🚀",
+      message: message,
+      timestamp: new Date().toLocaleTimeString()
+    });
+    console.log(`[CACHE] ${message}`);
   }
 
   _cacheKeyForFilter(filter) {
@@ -143,96 +205,114 @@ class CachingProxy {
   filterTransaction(filter) {
     const key = this._cacheKeyForFilter(filter);
     if (this.cache.has(key)) {
-      console.log("[CACHE] hit", key);
-      // shallow copy for safety
+      this._logCache(`Cache HIT for filter "${filter}"`);
       return [...this.cache.get(key)];
     }
-    console.log("[CACHE] miss", key);
+    
+    this._logCache(`Cache MISS for filter "${filter}" - calculating...`);
     const result = this.real.filterTransaction(filter);
-    this.cache.set(key, result); // store array (objects)
+    this.cache.set(key, result);
     return [...result];
   }
 
-  // clear cache when mutations happen
+  // Clear cache on mutations
   AddTransaction(...args) {
     this.cache.clear();
+    this._logCache("Cache cleared - data changed");
     return this.real.AddTransaction(...args);
   }
 
   deleteTransaction(id) {
     this.cache.clear();
+    this._logCache("Cache cleared - data changed");
     return this.real.deleteTransaction(id);
   }
 
-  // forward read-only / calculations and ensure caching for getTransaction if needed
+  // Forward other methods
   calculateIncome() { return this.real.calculateIncome(); }
   calculateExpense() { return this.real.calculateExpense(); }
   netBalance() { return this.real.netBalance(); }
   getTransaction() { return this.real.getTransaction(); }
   saveLocalstorage() { return this.real.saveLocalstorage(); }
+  
+  // Forward onChange from ValidationProxy
+  set onChange(fn) { 
+    if (this.real.onChange !== undefined) {
+      this.real.onChange = fn; 
+    }
+  }
 }
 
-/* FlexibleProxy: validation, auto-save, UI onChange hook, logging */
-class FlexibleProxy {
-  constructor(realManager) {
+// ========== PROXY 3: ANALYTICS/LOGGING ==========
+class AnalyticsProxy {
+  constructor(realManager, auditLog) {
     this.real = realManager;
-    this.onChange = null; // UI will set this
+    this.auditLog = auditLog;
   }
 
-  _afterMutate() {
-    // auto-save
-    if (typeof this.real.saveLocalstorage === "function") {
-      try { this.real.saveLocalstorage(); } catch (e) { console.warn(e); }
-    }
-    // notify UI
-    if (typeof this.onChange === "function") {
-      try { this.onChange(); } catch (e) { console.warn("onChange failed", e); }
-    }
+  _logAnalytics(event, meta = {}) {
+    this.auditLog.push({
+      type: "analytics",
+      icon: "📊",
+      message: `${event} ${JSON.stringify(meta)}`,
+      timestamp: new Date().toLocaleTimeString()
+    });
+    console.log(`[ANALYTICS] ${event}`, meta);
   }
 
-    notvalidmessage(){
-      return `⚠️ Not Valid ${this.description} ${this.amount}`
-    }
-
-  AddTransaction(description, type, account, category, amount) {
-    // validation
-    if (!amount || isNaN(parseFloat(amount))) throw new Error( notvalidmessage());
-    if (!description) throw new Error("Description required");
-    if (!type || (type !== "income" && type !== "expense")) throw new Error("Invalid type");
-    const result = this.real.AddTransaction(description, type, account, category, amount);
-    console.log("[FLEX] Added transaction");
-    this._afterMutate();
-    return result;
+  AddTransaction(...args) {
+    this._logAnalytics("AddTransaction", { args: args.slice(0, 2) }); // First 2 args for brevity
+    return this.real.AddTransaction(...args);
   }
 
   deleteTransaction(id) {
-   if(!id) this.notvalidmessage();
-    const result = this.real.deleteTransaction(id);
-    this._afterMutate();
-    return result;
+    this._logAnalytics("deleteTransaction", { id });
+    return this.real.deleteTransaction(id);
   }
 
   calculateIncome() {
-    if(this.amount <=0) this.notvalidmessage();
-     return this.real.calculateIncome();
+    this._logAnalytics("calculateIncome");
+    return this.real.calculateIncome();
+  }
 
-   }
-  calculateExpense() { 
-    if(amount <=0) this.notvalidmessage()
+  calculateExpense() {
+    this._logAnalytics("calculateExpense");
     return this.real.calculateExpense();
-   }
-  netBalance() { if(amount <=0) this.notvalidmessage(); return this.real.netBalance(); }
-  filterTransaction(filter) { return this.real.filterTransaction(filter); }
-  getTransaction() { return this.real.getTransaction(); }
+  }
 
-  saveLocalstorage() { // expose so other layers can call
+  netBalance() {
+    this._logAnalytics("netBalance");
+    return this.real.netBalance();
+  }
+
+  filterTransaction(filter) {
+    this._logAnalytics("filterTransaction", { filter });
+    return this.real.filterTransaction(filter);
+  }
+
+  getTransaction() {
+    this._logAnalytics("getTransaction");
+    return this.real.getTransaction();
+  }
+
+  saveLocalstorage() {
+    this._logAnalytics("saveLocalstorage");
     return this.real.saveLocalstorage();
+  }
+
+  // Forward onChange
+  set onChange(fn) { 
+    if (this.real.onChange !== undefined) {
+      this.real.onChange = fn; 
+    }
   }
 }
 
+// ========== UI RENDERER ==========
 class UIRenderer {
-  constructor(manager) {
+  constructor(manager, auditLog) {
     this.manager = manager;
+    this.auditLog = auditLog;
   }
 
   rendertransactionList(filter = "all") {
@@ -241,22 +321,22 @@ class UIRenderer {
 
     if (!filters || filters.length === 0) {
       transactionList.innerHTML = `
-        <div class="emptyBox" >
-          <h1>No Transaction ${filter === "all" ? "yet" : "here"}</h1>
-          <p style="text-align: center">${filter === "income" || filter === "expense" ? "no transaction with this type" : "add your monthly expenses and incomes"}</p>
+        <div class="emptyBox" style="text-align: center; padding: 40px; color: #666;">
+          <h2>No Transactions ${filter === "all" ? "Yet" : "Here"}</h2>
+          <p>${filter === "income" || filter === "expense" ? "No transactions with this type" : "Add your monthly expenses and incomes"}</p>
         </div>
       `;
       return;
     }
 
     transactionList.innerHTML = filters.map(trans => `
-      <div class="transactionListz" style="background-color: ${trans.type === "income" ? "lightgreen" : "tomato"}" >
+      <div class="transactionListz" style="background-color: ${trans.type === "income" ? "lightgreen" : "tomato"}">
         <span class="spanstyle" style="color: white">${trans.description}</span>
         <span class="spanstyle">${trans.type}</span>
         <p class="parastyle">${trans.account}</p>
         <p class="parastyle">${trans.category}</p>
-        <h3 class="h3style">$${trans.amount}</h3>
-        <span class="datestyle" style="font-size: 12px">${trans.date}</span>
+        <h3 class="h3style">$${trans.amount.toFixed(2)}</h3>
+        <span class="datestyle">${trans.date}</span>
         <button class="delete-Btn" data-id="${trans.id}">🗑️</button>
       </div>
     `).join('');
@@ -276,38 +356,64 @@ class UIRenderer {
     amountNet.textContent = `$${netBalance.toFixed(2)}`;
   }
 
-  notvalidrenderer(){
-    let heading = document.getElementById("aubithead")
+  renderAuditLog() {
+    let auditBox = document.getElementById("auditBox");
+    if (!auditBox) return;
 
-    let invalid = this.manager.notvalidmessage();
+    const recentLogs = this.auditLog.slice(-10).reverse(); // Last 10, newest first
 
-    heading.textContent = `${invalid}`;
+    if (recentLogs.length === 0) {
+      auditBox.innerHTML = '<h2 style="text-align: center; color: #666;">No audit logs yet</h2>';
+      return;
+    }
+
+    auditBox.innerHTML = `
+      <h2 style="padding: 20px; font-family: Arial;">📋 Audit Log (Last 10 Events)</h2>
+      ${recentLogs.map(log => `
+        <div class="log-entry ${log.type}" style="
+          padding: 10px 15px;
+          margin: 10px 20px;
+          background: white;
+          border-left: 4px solid ${log.type === 'error' ? '#ff5252' : log.type === 'cache' ? '#2196f3' : '#4caf50'};
+          border-radius: 4px;
+          font-family: Arial;
+          font-size: 0.9rem;
+        ">
+          ${log.icon} ${log.message}
+          <span style="color: #999; font-size: 0.85em; margin-left: 10px;">${log.timestamp}</span>
+        </div>
+      `).join('')}
+    `;
   }
 
   renderAll() {
     this.rendertransactionList();
     this.renderBalance();
+    this.renderAuditLog();
   }
 }
 
-/* =========================
-   App: wire everything, use proxy chain
-   ========================= */
-
+// ========== APP ==========
 class App {
   constructor() {
-    const real = new TransactionManager();
-    const flexible = new FlexibleProxy(real);
-    const caching = new CachingProxy(flexible);
-    const analytics = new AnalyticsProxy(caching);
+    // Shared audit log
+    this.auditLog = [];
 
-    this.manager = analytics; 
-    this.renderer = new UIRenderer(this.manager);
+    // Build proxy chain
+    const real = new TransactionManager();
+    const validation = new ValidationProxy(real, this.auditLog);
+    const caching = new CachingProxy(validation, this.auditLog);
+    const analytics = new AnalyticsProxy(caching, this.auditLog);
+
+    this.manager = analytics;
+    this.renderer = new UIRenderer(this.manager, this.auditLog);
     this.currentFilter = "all";
-    flexible.onChange = () => {
+
+    // Set onChange callback
+    validation.onChange = () => {
       this.renderer.rendertransactionList(this.currentFilter);
       this.renderer.renderBalance();
-      this.renderer.notvalidrenderer()
+      this.renderer.renderAuditLog();
     };
 
     this.saveEventListener();
@@ -353,17 +459,11 @@ class App {
         this.currentFilter = e.target.dataset.filter;
         document.querySelectorAll(".filter-Btn").forEach(button => button.classList.remove("active"));
         e.target.classList.add("active");
-        // use manager.filterTransaction -> caching proxy will serve cached results if possible
         this.renderer.rendertransactionList(this.currentFilter);
-        this.manager.saveLocalstorage && this.manager.saveLocalstorage();
       }
     });
   }
 }
 
-/* =========================
-   Start the app
-   ========================= */
-
+// ========== START APP ==========
 const app = new App();
-app.renderer.renderAll();
